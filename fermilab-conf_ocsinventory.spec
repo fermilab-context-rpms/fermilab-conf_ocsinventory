@@ -1,6 +1,6 @@
 Name:		fermilab-conf_ocsinventory
 Version:	2.9.1
-Release:	1%{?dist}
+Release:	1.1%{?dist}
 Summary:	Configure the OCS Inventory client for Fermilab
 
 Group:		Fermilab
@@ -15,10 +15,10 @@ Source3:	SERVICES_Sub_CA_01.pem
 
 BuildArch:	noarch
 
-Requires:	ocsinventory-agent >= 2.9.1%{?dist}
+Requires:	ocsinventory-agent >= 2.9.1-1%{?dist}
 Requires:	systemd
 
-Requires(post):	ocsinventory-agent >= 2.9.1%{?dist}
+Requires(post):	ocsinventory-agent >= 2.9.1-1%{?dist}
 Requires(post):	augeas coreutils findutils systemd
 
 BuildRequires:	systemd
@@ -81,5 +81,8 @@ systemctl start ocsinventory-agent-daily.timer
 
 
 %changelog
+* Tue Apr 5 2022 Pat Riehecky <riehecky@fnal.gov> 2.9.1-1.1
+- Fix requirements typo
+
 * Mon Feb 28 2022 Pat Riehecky <riehecky@fnal.gov> 2.9.1-1
 - Initial build for EL9 and OCSInventory 2.9.1
