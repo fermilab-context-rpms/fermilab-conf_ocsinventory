@@ -1,6 +1,6 @@
 Name:		fermilab-conf_ocsinventory
-Version:	2.9.1
-Release:	1.1%{?dist}
+Version:	2.10.4
+Release:	1%{?dist}
 Summary:	Configure the OCS Inventory client for Fermilab
 
 Group:		Fermilab
@@ -9,16 +9,14 @@ URL:		https://github.com/fermilab-context-rpms/fermilab-conf_ocsinventory
 
 Source0:	30-fermilab-util_ocsinventory.preset
 
-Source1:	Fermilab_Root_CA.pem
-Source2:	FERMI_Sub_CA_01.pem
-Source3:	SERVICES_Sub_CA_01.pem
+Source1:	timer-splay.conf
 
 BuildArch:	noarch
 
-Requires:	ocsinventory-agent >= 2.9.1-1%{?dist}
+Requires:	ocsinventory-agent >= 2.10.2-1%{?dist}
 Requires:	systemd
 
-Requires(post):	ocsinventory-agent >= 2.9.1-1%{?dist}
+Requires(post):	ocsinventory-agent >= 2.10.2-1%{?dist}
 Requires(post):	augeas coreutils findutils systemd
 
 BuildRequires:	systemd
@@ -40,12 +38,7 @@ This RPM will setup OCS Inventory for use at Fermilab.
 
 %install
 %{__install} -D %{SOURCE0} %{buildroot}/%{_presetdir}/30-fermilab-conf_ocsinventory.preset
-mkdir -p %{buildroot}/%{_datarootdir}/%{name}/
-
-cat %{SOURCE1} >  %{buildroot}/%{_datarootdir}/%{name}/ocsinventory-agent-cacert.pem
-cat %{SOURCE2} >> %{buildroot}/%{_datarootdir}/%{name}/ocsinventory-agent-cacert.pem
-cat %{SOURCE3} >> %{buildroot}/%{_datarootdir}/%{name}/ocsinventory-agent-cacert.pem
-
+%{__install} -D %{SOURCE1} %{buildroot}/%{_unitdir}/ocsinventory-agent-daily.timer.d/timer-splay.conf
 
 %post
 %systemd_post ocsinventory-agent-daily.timer
@@ -54,13 +47,15 @@ TMPFILE=$(mktemp)
 cat > ${TMPFILE} <<EOF
 set /files/etc/sysconfig/ocsinventory-agent/OCSMODE\[0\] cron
 set /files/etc/sysconfig/ocsinventory-agent/OCSSERVER\[0\] %{OCSServer}
+set /files/etc/sysconfig/ocsinventory-agent/OCSSSL\[0\] 0
 save
 EOF
 augtool < ${TMPFILE} >/dev/null
-rm -f ${TMPFILE}
+%{__rm} -f ${TMPFILE}
 
 # %{_sysconfdir}/ocsinventory/ocsinventory-agent-cacert.pem added in 2.9.1
-cat %{_datarootdir}/%{name}/ocsinventory-agent-cacert.pem >> %{_sysconfdir}/ocsinventory/ocsinventory-agent-cacert.pem
+# /files/etc/sysconfig/ocsinventory-agent/OCSSSL[0] == 0 added in 2.10.4, so we can drop the CA cert
+%{__rm} -f %{_sysconfdir}/ocsinventory/ocsinventory-agent-cacert.pem
 
 # delete any existing host specific CA certs and let them be rebuilt
 find /var/lib/ocsinventory-agent -type f -name cacert.pem -exec rm -f {} \;
@@ -77,10 +72,14 @@ systemctl start ocsinventory-agent-daily.timer
 
 %files
 %{_presetdir}/30-fermilab-conf_ocsinventory.preset
-%config %{_datarootdir}/%{name}/ocsinventory-agent-cacert.pem
+%{_unitdir}/ocsinventory-agent-daily.timer.d/timer-splay.conf
 
 
 %changelog
+* Wed Nov 20 2024 Pat Riehecky <riehecky@fnal.gov> 2.10.4-1
+- Skip CA cert validation
+- Increase inventory randomization window size
+
 * Tue Apr 5 2022 Pat Riehecky <riehecky@fnal.gov> 2.9.1-1.1
 - Fix requirements typo
 
